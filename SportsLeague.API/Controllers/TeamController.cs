@@ -7,6 +7,8 @@ using SportsLeague.Domain.Interfaces.Services;
 
 namespace SportsLeague.API.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     public class TeamController : ControllerBase
     {
         private readonly ITeamService _teamService;

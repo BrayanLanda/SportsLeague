@@ -30,6 +30,9 @@ public class LeagueDbContext : DbContext
                   .HasMaxLength(150);
             entity.Property(t => t.LogoUrl)
                   .HasMaxLength(500);
+            entity.Property(t => t.FoundedDate)
+                  .HasColumnType("date")
+                  .IsRequired();
             entity.Property(t => t.CreatedAt)
                   .IsRequired();
             entity.Property(t => t.UpdatedAt)
@@ -39,4 +42,3 @@ public class LeagueDbContext : DbContext
         });
     }
 }
-

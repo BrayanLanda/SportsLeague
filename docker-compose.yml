@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: sportsleague-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sportsleague_db
+      POSTGRES_USER: sportsleague_user
+      POSTGRES_PASSWORD: sportsleague_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sportsleague_user -d sportsleague_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
