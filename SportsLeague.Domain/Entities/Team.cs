@@ -7,4 +7,6 @@ public class Team : AuditBase
     public string Stadium { get; set; }  = string.Empty;
     public string? LogoUrl { get; set; }
     public DateTime FoundedDate { get; set; }
+
+    public ICollection<Player> Players { get; set; } = new List<Player>();
 }
