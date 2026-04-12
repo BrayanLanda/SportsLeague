@@ -101,8 +101,10 @@ public class LeagueDbContext : DbContext
             .IsRequired()
             .HasMaxLength(20);
           entity.Property(t => t.StartDate)
+            .HasColumnType("date")
             .IsRequired();
           entity.Property(t => t.EndDate)
+            .HasColumnType("date")
             .IsRequired();
           entity.Property(t => t.Status)
             .IsRequired();
