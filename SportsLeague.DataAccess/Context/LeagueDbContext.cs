@@ -191,6 +191,7 @@ public class LeagueDbContext : DbContext
         {
           entity.HasKey(m => m.Id);
           entity.Property(m => m.MatchDate)
+                .HasColumnType("date")
                 .IsRequired();
           entity.Property(m => m.Venue)
                 .HasMaxLength(150);
