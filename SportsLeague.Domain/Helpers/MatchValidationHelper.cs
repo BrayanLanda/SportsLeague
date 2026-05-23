@@ -43,7 +43,7 @@ namespace SportsLeague.Domain.Helpers
             if (player.TeamId != match.HomeTeamId &&
                 player.TeamId != match.AwayTeamId)
                 throw new InvalidOperationException(
-                    "The player does not belong to either team in the match");
+                    "El jugador no pertenece a ninguno de los equipos del partido");
 
             return player;
         }

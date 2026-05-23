@@ -9,9 +9,7 @@ public class DataSeeder
 {
     public static async Task SeedAsync(LeagueDbContext context)
     {
-        if (await context.Teams.AnyAsync()) return;
-
-        var teams = new List<Team>
+        var teamSeeds = new List<Team>
         {
             new() { Name="Atlético Nacional", City="Medellín", Stadium="Atanasio Girardot" },
             new() { Name="Independiente Medellín", City="Medellín", Stadium="Atanasio Girardot" },
@@ -35,8 +33,22 @@ public class DataSeeder
             new() { Name="Internacional de Bogotá", City="Bogotá", Stadium="Metropolitano de Techo" },
         };
 
-        context.Teams.AddRange(teams);
-        await context.SaveChangesAsync();
+        var existingTeamNames = await context.Teams
+            .Select(t => t.Name)
+            .ToListAsync();
+
+        var missingTeams = teamSeeds
+            .Where(seed => !existingTeamNames.Contains(seed.Name))
+            .ToList();
+
+        if (missingTeams.Any())
+        {
+            context.Teams.AddRange(missingTeams);
+            await context.SaveChangesAsync();
+        }
+
+        var teams = await context.Teams.ToListAsync();
+        var teamsByName = teams.ToDictionary(t => t.Name, t => t);
 
         // ═══ 2. JUGADORES (4 por equipo = 80 total) ═══
         var playersData = new (string First, string Last, PlayerPosition Pos, int Number)[][]
@@ -183,48 +195,80 @@ public class DataSeeder
             },
         };
 
-        var players = new List<Player>();
-        for (int i = 0; i < teams.Count; i++)
+        if (playersData.Length != teamSeeds.Count)
         {
+            throw new InvalidOperationException(
+                "The seed data for teams and players is inconsistent.");
+        }
+
+        for (int i = 0; i < teamSeeds.Count; i++)
+        {
+            var teamName = teamSeeds[i].Name;
+            if (!teamsByName.TryGetValue(teamName, out var team))
+            {
+                continue;
+            }
+
             foreach (var pd in playersData[i])
             {
-                players.Add(new Player
+                var playerExists = await context.Players.AnyAsync(
+                    p => p.TeamId == team.Id && p.Number == pd.Number);
+
+                if (playerExists) continue;
+
+                context.Players.Add(new Player
                 {
                     FirstName = pd.First,
                     LastName = pd.Last,
                     Number = pd.Number,
                     Position = pd.Pos,
-                    BirthDate = new DateTime(1995, 1, 1).AddMonths(players.Count),
-                    TeamId = teams[i].Id
+                    BirthDate = new DateTime(1995, 1, 1).AddMonths(i * 4),
+                    TeamId = team.Id
                 });
             }
         }
-        context.Players.AddRange(players);
         await context.SaveChangesAsync();
 
-        var referees = new List<Referee>
+        var refereeSeeds = new List<Referee>
         {
             new() { FirstName="Wilmar", LastName="Roldán", Nationality="Colombia" },
             new() { FirstName="Andrés", LastName="Rojas", Nationality="Colombia" },
             new() { FirstName="Carlos", LastName="Betancur", Nationality="Colombia" },
             new() { FirstName="Jhon", LastName="Hinestroza", Nationality="Colombia" },
         };
-        context.Referees.AddRange(referees);
+        foreach (var referee in refereeSeeds)
+        {
+            var exists = await context.Referees.AnyAsync(
+                r => r.FirstName == referee.FirstName && r.LastName == referee.LastName);
+            if (exists) continue;
+
+            context.Referees.Add(referee);
+        }
         await context.SaveChangesAsync();
 
-        var tournament = new Tournament
+        Tournament? tournament = await context.Tournaments
+            .FirstOrDefaultAsync(t => t.Name == "Liga BetPlay 2026-I");
+
+        if (tournament == null)
         {
-            Name = "Liga BetPlay 2026-I",
-            Season = "2026-I",
-            StartDate = new DateTime(2026, 1, 16),
-            EndDate = new DateTime(2026, 6, 5),
-            Status = TournamentStatus.InProgress
-        };
-        context.Tournaments.Add(tournament);
-        await context.SaveChangesAsync();
+            tournament = new Tournament
+            {
+                Name = "Liga BetPlay 2026-I",
+                Season = "2026-I",
+                StartDate = new DateTime(2026, 1, 16),
+                EndDate = new DateTime(2026, 6, 5),
+                Status = TournamentStatus.InProgress
+            };
+            context.Tournaments.Add(tournament);
+            await context.SaveChangesAsync();
+        }
 
         foreach (var team in teams)
         {
+            var exists = await context.TournamentTeams.AnyAsync(
+                tt => tt.TournamentId == tournament.Id && tt.TeamId == team.Id);
+            if (exists) continue;
+
             context.TournamentTeams.Add(new TournamentTeam
             {
                 TournamentId = tournament.Id,
